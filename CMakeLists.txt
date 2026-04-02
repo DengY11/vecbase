@@ -71,3 +71,13 @@ target_include_directories(vecbase_tests PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/third_party/dkv/include
 )
 add_test(NAME vecbase_tests COMMAND vecbase_tests)
+
+add_executable(vecbase_example_basic
+    examples/basic_usage.cc
+)
+target_link_libraries(vecbase_example_basic PRIVATE vecbase dkv)
+target_include_directories(vecbase_example_basic PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/third_party/dkv/include
+)
