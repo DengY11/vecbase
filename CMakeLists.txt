@@ -5,6 +5,7 @@ project(vecbase LANGUAGES CXX)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 option(VECBASE_UPDATE_SUBMODULES "Update git submodules during configure" ON)
+option(VECBASE_ENABLE_SIMD "Enable SIMD acceleration for vector distance kernels" ON)
 
 if(VECBASE_UPDATE_SUBMODULES)
     find_package(Git QUIET)
@@ -56,6 +57,21 @@ target_include_directories(vecbase
 
 target_compile_features(vecbase PUBLIC cxx_std_20)
 target_link_libraries(vecbase PRIVATE dkv)
+
+if(VECBASE_ENABLE_SIMD)
+    if(CMAKE_SYSTEM_PROCESSOR MATCHES "^(x86_64|X86_64|amd64|AMD64|i[3-6]86)$")
+        if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+            target_compile_options(vecbase PRIVATE -mavx2 -mfma)
+            target_compile_definitions(vecbase PRIVATE VECBASE_SIMD_AVX2_FMA=1)
+        endif()
+    elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "^(aarch64|AARCH64|arm64|ARM64|armv7.*|armv8.*)$")
+        target_compile_definitions(vecbase PRIVATE VECBASE_SIMD_NEON=1)
+        if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang"
+           AND CMAKE_SYSTEM_PROCESSOR MATCHES "^(armv7.*|armv8.*)$")
+            target_compile_options(vecbase PRIVATE -mfpu=neon)
+        endif()
+    endif()
+endif()
 
 add_library(vecbase::vecbase ALIAS vecbase)
 

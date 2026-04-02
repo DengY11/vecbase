@@ -13,6 +13,7 @@
 #include <thread>
 #include <vector>
 
+#include "index/distance.h"
 #include "index/hnsw_index.h"
 #include "table/buffer_pool.h"
 #include "util/crc32c.h"
@@ -234,6 +235,40 @@ bool TestDbInvalidArguments() {
   status = db->DropIndex({}, "missing");
   return Expect(status.code() == vecbase::Status::Code::kNotFound,
                 "drop missing index should return not found");
+}
+
+bool NearlyEqual(float lhs, float rhs, float tolerance = 1e-5f) {
+  return std::abs(lhs - rhs) <= tolerance;
+}
+
+bool TestDistanceKernels() {
+  const std::vector<float> lhs = {1.0f, 2.0f, 3.0f, 4.0f, 5.0f};
+  const std::vector<float> rhs = {5.0f, 4.0f, 3.0f, 2.0f, 1.0f};
+
+  const float l2 = vecbase::ComputeDistance(vecbase::MetricType::kL2, lhs, rhs);
+  if (!Expect(NearlyEqual(l2, 40.0f), "L2 distance should match expected value")) {
+    return false;
+  }
+
+  const float inner =
+      vecbase::ComputeDistance(vecbase::MetricType::kInnerProduct, lhs, rhs);
+  if (!Expect(NearlyEqual(inner, -35.0f),
+              "inner product distance should match expected value")) {
+    return false;
+  }
+
+  const float cosine =
+      vecbase::ComputeDistance(vecbase::MetricType::kCosine, lhs, rhs);
+  if (!Expect(NearlyEqual(cosine, 1.0f - (35.0f / 55.0f)),
+              "cosine distance should match expected value")) {
+    return false;
+  }
+
+  const std::vector<float> zero = {0.0f, 0.0f, 0.0f};
+  const float zero_cosine =
+      vecbase::ComputeDistance(vecbase::MetricType::kCosine, zero, zero);
+  return Expect(NearlyEqual(zero_cosine, 1.0f),
+                "cosine distance for zero vectors should be 1");
 }
 
 bool TestBufferPoolMultiPageAndCheckpointAdvance() {
@@ -610,12 +645,13 @@ bool TestFuzzDbRandomOps() {
 } // namespace
 
 int main() {
-  const std::array<std::pair<const char *, bool (*)()>, 11> tests = {{
+  const std::array<std::pair<const char *, bool (*)()>, 12> tests = {{
       {"TestCRC32CKnownValue", &TestCRC32CKnownValue},
       {"TestBufferPoolWalMagicAndChecksum", &TestBufferPoolWalMagicAndChecksum},
       {"TestCheckpointStatePersists", &TestCheckpointStatePersists},
       {"TestDbEmptyIndexSearch", &TestDbEmptyIndexSearch},
       {"TestDbInvalidArguments", &TestDbInvalidArguments},
+      {"TestDistanceKernels", &TestDistanceKernels},
       {"TestBufferPoolMultiPageAndCheckpointAdvance",
        &TestBufferPoolMultiPageAndCheckpointAdvance},
       {"TestDbRecoverSearch", &TestDbRecoverSearch},
