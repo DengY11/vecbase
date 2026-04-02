@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 3.20)
 project(vecbase LANGUAGES CXX)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+find_package(Threads REQUIRED)
 
 option(VECBASE_UPDATE_SUBMODULES "Update git submodules during configure" ON)
 option(VECBASE_ENABLE_SIMD "Enable SIMD acceleration for vector distance kernels" ON)
@@ -95,5 +96,28 @@ target_link_libraries(vecbase_example_basic PRIVATE vecbase dkv)
 target_include_directories(vecbase_example_basic PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/third_party/dkv/include
+)
+
+add_executable(vecbase_server
+    server/acceptor.cc
+    server/commands.cc
+    server/main.cc
+    server/resp.cc
+    server/server.cc
+    server/subreactor.cc
+)
+target_link_libraries(vecbase_server PRIVATE vecbase dkv Threads::Threads)
+target_include_directories(vecbase_server PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/third_party/dkv/include
+)
+
+add_executable(vecbase_cli
+    cli/vecbase_cli.cc
+)
+target_link_libraries(vecbase_cli PRIVATE dkv)
+target_include_directories(vecbase_cli PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/third_party/dkv/include
 )
